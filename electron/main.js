@@ -356,6 +356,7 @@ ipcMain.handle('queue:retry-row', (_e, id) => { manifest.retryRow(id); engine.no
 ipcMain.handle('queue:retry-failed', () => { const n = manifest.retryFailed(); engine.notify(); return n; });
 ipcMain.handle('queue:remove-row', (_e, id) => manifest.removeRow(id));
 ipcMain.handle('queue:clear-finished', () => manifest.clearFinished());
+ipcMain.handle('queue:clear-loaded', () => { const n = manifest.clearLoaded(); engine.notify(); return n; });
 
 ipcMain.handle('queue:cancel-all', () => engine.cancelAll());
 ipcMain.handle('engine:set-paused', (_e, v) => { engine.setPaused(v); return engine.isPaused(); });

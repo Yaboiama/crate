@@ -168,6 +168,17 @@ function clearFinished() {
   return before - data.rows.length;
 }
 
+// Drops everything waiting to be started. Only touches `loaded` rows, so
+// anything in flight, finished or failed is left exactly as it is.
+function clearLoaded() {
+  const before = data.rows.length;
+  data.rows = data.rows.filter((r) => r.status !== 'loaded');
+  const liveBatches = new Set(data.rows.map((r) => r.batchId));
+  data.batches = data.batches.filter((b) => liveBatches.has(b.id));
+  if (data.rows.length !== before) { save(); emit('rows', data.rows); }
+  return before - data.rows.length;
+}
+
 function counts() {
   const c = { total: data.rows.length, loaded: 0, pending: 0, working: 0, done: 0, failed: 0, skipped: 0 };
   for (const r of data.rows) c[r.status] = (c[r.status] || 0) + 1;
@@ -176,6 +187,6 @@ function counts() {
 
 module.exports = {
   init, rows, batches, getRow, makeRow, addBatch, update,
-  resetWorking, startLoaded, retryRow, retryFailed, removeRow, clearFinished,
+  resetWorking, startLoaded, retryRow, retryFailed, removeRow, clearFinished, clearLoaded,
   counts, saveNow, onChange,
 };

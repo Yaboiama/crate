@@ -203,6 +203,10 @@ function renderStatus(info) {
   // only offer it when there is something to stop
   const busy = (c.working || 0) + (c.pending || 0) > 0;
   $('cancelBtn').hidden = !busy;
+  const loadedBtn = $('clearLoadedBtn');
+  loadedBtn.hidden = !(c.loaded > 0);
+  if (loadedBtn.hidden) { loadedBtn.dataset.sure = '0'; loadedBtn.textContent = 'Clear loaded'; }
+  else if (loadedBtn.dataset.sure !== '1') loadedBtn.textContent = `Clear loaded (${c.loaded})`;
   if (!busy) { $('cancelBtn').dataset.sure = '0'; $('cancelBtn').textContent = 'Cancel all'; }
   enginePaused = Boolean(info.paused);
   $('pauseBtn').textContent = enginePaused ? 'Resume' : 'Pause';
@@ -933,6 +937,22 @@ async function boot() {
 
   $('retryFailedBtn').addEventListener('click', () => api.retryFailed());
   $('clearBtn').addEventListener('click', () => api.clearFinished());
+
+  // discards queued work, so make it deliberate
+  $('clearLoadedBtn').addEventListener('click', async () => {
+    const btn = $('clearLoadedBtn');
+    if (btn.dataset.sure !== '1') {
+      btn.dataset.sure = '1';
+      btn.textContent = 'Clear loaded \u2014 click again';
+      setTimeout(() => {
+        if (btn.dataset.sure === '1') { btn.dataset.sure = '0'; btn.textContent = 'Clear loaded'; }
+      }, 4000);
+      return;
+    }
+    btn.dataset.sure = '0';
+    const n = await api.clearLoaded();
+    showLinkMsg(n ? `Removed ${n} track${n === 1 ? '' : 's'} that were waiting to download.` : 'Nothing was waiting.', false);
+  });
 
   wirePlaylists();
 

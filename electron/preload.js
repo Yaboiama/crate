@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('crate', {
   retryFailed: () => ipcRenderer.invoke('queue:retry-failed'),
   removeRow: (id) => ipcRenderer.invoke('queue:remove-row', id),
   clearFinished: () => ipcRenderer.invoke('queue:clear-finished'),
+  clearLoaded: () => ipcRenderer.invoke('queue:clear-loaded'),
   cancelAll: () => ipcRenderer.invoke('queue:cancel-all'),
   setPaused: (v) => ipcRenderer.invoke('engine:set-paused', v),
 
