@@ -46,6 +46,7 @@ function summary(p) {
     id: p.id,
     name: p.name,
     folder: p.folder,
+    compareDirs: p.compareDirs || [],
     sourceUrl: p.sourceUrl || null,
     total: p.tracks.length,
     lastCheckedAt: p.lastCheckedAt || 0,
@@ -86,6 +87,7 @@ async function add({ name, folder, trackIds, metas, sourceUrl }, onProgress) {
     id: newId(),
     name: name || 'Playlist',
     folder: folder || S.settings.get().outputDir,
+    compareDirs: [],
     sourceUrl: sourceUrl || null,
     tracks,
     addedAt: Date.now(),
@@ -126,6 +128,19 @@ function rename(id, name, folder, sourceUrl) {
   return summary(p);
 }
 
+// Folders this playlist is compared against, on top of its own destination.
+function setCompareDirs(id, dirs) {
+  const p = get(id);
+  if (!p) return null;
+  const clean = [];
+  for (const d of dirs || []) {
+    if (typeof d === 'string' && d.trim() && !clean.includes(d)) clean.push(d);
+  }
+  p.compareDirs = clean;
+  save();
+  return summary(p);
+}
+
 function remove(id) {
   const i = data.lists.findIndex((p) => p.id === id);
   if (i === -1) return false;
@@ -140,8 +155,13 @@ async function check(id, onProgress) {
   if (!p) return null;
   // The first look at a large folder has to read every file's tag; after
   // that it is cached against size and mtime and comes back instantly.
-  const indexes = await S.library.ensureAll(
-    [p.folder, ...(S.settings.get().extraLibraryDirs || [])], onProgress);
+  // Its own folder first, then the folders chosen for this playlist, then
+  // the global extras — so the most specific match wins.
+  const indexes = await S.library.ensureAll([
+    p.folder,
+    ...(p.compareDirs || []),
+    ...(S.settings.get().extraLibraryDirs || []),
+  ], onProgress);
   const missing = [];
   let have = 0;
   for (const meta of p.tracks) {
@@ -154,4 +174,6 @@ async function check(id, onProgress) {
   return { ...summary(p), missingTracks: missing };
 }
 
-module.exports = { init, list, get, add, updateTracks, rename, remove, check, summary };
+module.exports = {
+  init, list, get, add, updateTracks, rename, setCompareDirs, remove, check, summary,
+};

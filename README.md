@@ -33,7 +33,9 @@ audio elsewhere.
   time, so the first scan of a big collection takes a moment and every scan
   after it is instant.
 - **Watched playlists.** Capture a playlist once, then check it for new tracks
-  and download them whenever you choose. Each playlist has its own folder.
+  and download them whenever you choose. Each playlist has its own destination
+  folder and its own list of folders to compare against, both saved with it —
+  so checking for new tracks and fetching them is two clicks, every time.
   Nothing runs on a timer.
 - **Proper tagging.** ID3v2 with title, artist, album artist, album, track and
   disc numbers, year, ISRC, embedded JPEG cover art, and the Spotify track ID

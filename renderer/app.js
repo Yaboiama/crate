@@ -344,6 +344,9 @@ function playlistCard(p) {
     folder.title = dir;
   });
 
+  const btnCompare = document.createElement('button');
+  btnCompare.className = 'btn';
+
   const btnRemove = document.createElement('button');
   btnRemove.className = 'btn btn-quiet';
   btnRemove.textContent = 'Remove';
@@ -358,7 +361,69 @@ function playlistCard(p) {
     renderPlaylists();
   });
 
-  actions.append(btnCheck, btnGet, btnUpdate, btnFolder, btnRemove);
+  actions.append(btnCheck, btnGet, btnUpdate, btnFolder, btnCompare, btnRemove);
+
+  // folders this playlist is compared against, saved with it
+  const cmp = document.createElement('div');
+  cmp.className = 'pl-update';
+  const cmpList = document.createElement('div');
+  cmpList.className = 'folder-list';
+  const cmpHint = document.createElement('div');
+  cmpHint.className = 'hint';
+  cmpHint.textContent = 'A track found in any of these counts as already owned, '
+    + 'on top of this playlist\u2019s own folder and anything in Settings \u203A Library.';
+
+  const paintCmp = () => {
+    const dirs = p.compareDirs || [];
+    btnCompare.textContent = dirs.length ? 'Compare (' + dirs.length + ')' : 'Compare folders';
+    cmpList.innerHTML = '';
+    if (!dirs.length) {
+      const none = document.createElement('div');
+      none.className = 'folder-none';
+      none.textContent = 'Only this playlist\u2019s own folder is checked.';
+      cmpList.append(none);
+    }
+    dirs.forEach((dir, i) => {
+      const row = document.createElement('div');
+      row.className = 'folder-row';
+      const txt = document.createElement('span');
+      txt.textContent = dir;
+      txt.title = dir;
+      const del = document.createElement('button');
+      del.className = 'row-btn';
+      del.textContent = '\u2715';
+      del.title = 'Stop comparing against this folder';
+      del.addEventListener('click', async () => {
+        const next = (p.compareDirs || []).slice();
+        next.splice(i, 1);
+        const r = await api.setPlaylistCompare({ id: p.id, dirs: next });
+        if (r) Object.assign(p, r);
+        paintCmp();
+      });
+      row.append(txt, del);
+      cmpList.append(row);
+    });
+  };
+
+  const cmpAdd = document.createElement('button');
+  cmpAdd.className = 'btn';
+  cmpAdd.textContent = 'Add a folder';
+  cmpAdd.addEventListener('click', async () => {
+    const dir = await api.chooseFolder();
+    if (!dir) return;
+    const next = (p.compareDirs || []).slice();
+    if (next.includes(dir)) return;
+    next.push(dir);
+    const r = await api.setPlaylistCompare({ id: p.id, dirs: next });
+    if (r) Object.assign(p, r);
+    paintCmp();
+  });
+  const cmpRow = document.createElement('div');
+  cmpRow.className = 'pl-actions';
+  cmpRow.append(cmpAdd);
+  cmp.append(cmpList, cmpRow, cmpHint);
+  paintCmp();
+  btnCompare.addEventListener('click', () => cmp.classList.toggle('open'));
 
   // re-paste after the playlist changed on Spotify
   const upd = document.createElement('div');
@@ -407,7 +472,7 @@ function playlistCard(p) {
       Boolean(r.capped));
   });
 
-  card.append(h, folder, counts, actions, upd);
+  card.append(h, folder, counts, actions, cmp, upd);
   return card;
 }
 

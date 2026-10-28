@@ -203,6 +203,7 @@ ipcMain.handle('link:expand', async (_e, text) => {
 ipcMain.handle('playlists:list', () => playlists.list());
 ipcMain.handle('playlists:rename', (_e, { id, name, folder, sourceUrl }) => playlists.rename(id, name, folder, sourceUrl));
 ipcMain.handle('playlists:remove', (_e, id) => playlists.remove(id));
+ipcMain.handle('playlists:set-compare', (_e, { id, dirs }) => playlists.setCompareDirs(id, dirs));
 
 // Reads a Spotify playlist or album link into the release metadata Crate
 // stores. Returns null when the text holds no such link.

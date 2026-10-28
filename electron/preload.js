@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('crate', {
   updatePlaylist: (payload) => ipcRenderer.invoke('playlists:update', payload),
   renamePlaylist: (payload) => ipcRenderer.invoke('playlists:rename', payload),
   removePlaylist: (id) => ipcRenderer.invoke('playlists:remove', id),
+  setPlaylistCompare: (payload) => ipcRenderer.invoke('playlists:set-compare', payload),
   checkPlaylist: (id) => ipcRenderer.invoke('playlists:check', id),
   downloadNew: (id) => ipcRenderer.invoke('playlists:download-new', id),
 
