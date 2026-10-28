@@ -357,6 +357,7 @@ ipcMain.handle('queue:retry-failed', () => { const n = manifest.retryFailed(); e
 ipcMain.handle('queue:remove-row', (_e, id) => manifest.removeRow(id));
 ipcMain.handle('queue:clear-finished', () => manifest.clearFinished());
 
+ipcMain.handle('queue:cancel-all', () => engine.cancelAll());
 ipcMain.handle('engine:set-paused', (_e, v) => { engine.setPaused(v); return engine.isPaused(); });
 
 ipcMain.handle('settings:get', () => settings.get());

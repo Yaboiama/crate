@@ -45,6 +45,9 @@ audio elsewhere.
   exponential backoff with jitter, and a circuit breaker that pauses a host
   that starts throttling and resumes by itself. Rate limiting never fails a
   track.
+- **Stop on demand.** **Cancel all** kills every running download and
+  converter immediately and puts the unfinished tracks back in the list, so
+  nothing is lost — press Download to start them again.
 - **Resumable.** Close it mid-batch and it picks up where it left off.
 
 There is deliberately **no** proxy rotation, user-agent spoofing, CAPTCHA

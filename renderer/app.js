@@ -200,6 +200,10 @@ function renderStatus(info) {
   $('statusDot').className = 'dot ' + (info.kind || '');
   $('retryFailedBtn').hidden = !(c.failed > 0);
   $('downloadBtn').hidden = !(c.loaded > 0);
+  // only offer it when there is something to stop
+  const busy = (c.working || 0) + (c.pending || 0) > 0;
+  $('cancelBtn').hidden = !busy;
+  if (!busy) { $('cancelBtn').dataset.sure = '0'; $('cancelBtn').textContent = 'Cancel all'; }
   enginePaused = Boolean(info.paused);
   $('pauseBtn').textContent = enginePaused ? 'Resume' : 'Pause';
 }
@@ -902,6 +906,25 @@ async function boot() {
     else if (!v.trim()) showLinkMsg('');
   });
   $('downloadBtn').addEventListener('click', () => api.startDownloads());
+
+  // two clicks, so a stray press cannot wipe out a running batch
+  $('cancelBtn').addEventListener('click', async () => {
+    const btn = $('cancelBtn');
+    if (btn.dataset.sure !== '1') {
+      btn.dataset.sure = '1';
+      btn.textContent = 'Cancel all \u2014 click again';
+      setTimeout(() => {
+        if (btn.dataset.sure === '1') { btn.dataset.sure = '0'; btn.textContent = 'Cancel all'; }
+      }, 4000);
+      return;
+    }
+    btn.dataset.sure = '0';
+    btn.textContent = 'Cancel all';
+    const n = await api.cancelAll();
+    showLinkMsg(n
+      ? `Stopped. ${n} track${n === 1 ? '' : 's'} put back in the list \u2014 press Download to start again.`
+      : 'Nothing was running.', false);
+  });
 
   $('pauseBtn').addEventListener('click', async () => {
     enginePaused = await api.setPaused(!enginePaused);

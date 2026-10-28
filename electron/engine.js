@@ -16,6 +16,9 @@ let paused = false;
 let tmpDir = null;
 let artDir = null;
 const inflight = new Set();
+// Bumped by cancelAll. A run started before the bump must not write its
+// outcome afterwards, or a killed download would reappear as a failure.
+let generation = 0;
 const progressStamp = new Map();
 let wasDraining = false;
 let lastStatusJson = '';
@@ -35,6 +38,30 @@ function init(c) {
 }
 
 function stop() { clearInterval(timer); }
+
+// Stop everything now: kill the running downloads and converters, and put
+// every unfinished track back to `loaded` so nothing is lost — pressing
+// Download starts them again from the top.
+function cancelAll() {
+  generation += 1;
+  try { ctx.tools.killAll(); } catch { /* nothing running */ }
+
+  let n = 0;
+  for (const row of ctx.manifest.rows()) {
+    if (row.status !== 'working' && row.status !== 'pending') continue;
+    patch(row.id, {
+      status: 'loaded', stage: null, progress: 0, attempts: 0,
+      nextAttemptAt: 0, error: null, tmpAudio: null,
+      note: 'Cancelled \u2014 press Download to start it again',
+    });
+    cleanupTemp(row.id);
+    n += 1;
+  }
+  inflight.clear();
+  progressStamp.clear();
+  emitStatus(true);
+  return n;
+}
 
 function setPaused(v) {
   paused = Boolean(v);
@@ -81,6 +108,7 @@ function patchProgress(id, stage, frac) {
 
 async function runRow(id) {
   inflight.add(id);
+  const gen = generation;
   let row = patch(id, { status: 'working', stage: 'start', progress: 0, error: null, note: null });
   const s = ctx.settings.get();
   try {
@@ -104,7 +132,8 @@ async function runRow(id) {
       ctx.breaker.noteSuccess(hostFor(row));
     }
   } catch (err) {
-    handleFailure(id, err, s);
+    // cancelled mid-flight? leave the row as cancelAll set it
+    if (gen === generation) handleFailure(id, err, s);
   } finally {
     inflight.delete(id);
     progressStamp.delete(id);
@@ -609,4 +638,4 @@ function onBatchDrained() {
   } catch { /* playlist files are a convenience, never fatal */ }
 }
 
-module.exports = { init, stop, setPaused, isPaused, notify, statusInfo, buildDest };
+module.exports = { init, stop, setPaused, isPaused, cancelAll, notify, statusInfo, buildDest };
