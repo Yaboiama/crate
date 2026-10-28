@@ -140,11 +140,12 @@ async function check(id, onProgress) {
   if (!p) return null;
   // The first look at a large folder has to read every file's tag; after
   // that it is cached against size and mtime and comes back instantly.
-  const index = await S.library.ensure(p.folder, onProgress);
+  const indexes = await S.library.ensureAll(
+    [p.folder, ...(S.settings.get().extraLibraryDirs || [])], onProgress);
   const missing = [];
   let have = 0;
   for (const meta of p.tracks) {
-    if (S.library.find(index, meta)) have += 1;
+    if (S.library.findAny(indexes, meta)) have += 1;
     else missing.push(meta);
   }
   p.lastCheckedAt = Date.now();

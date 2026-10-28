@@ -288,10 +288,13 @@ async function expandLink(url, ctx, preBuilt) {
   const s = ctx.settings.get();
   if (s.skipExisting && ctx.library) {
     if (ctx.onProgress) ctx.onProgress('Checking what you already have...');
-    const index = await ctx.library.ensure(s.outputDir);
+    const indexes = await ctx.library.ensureAll(
+      [s.outputDir, ...(s.extraLibraryDirs || [])],
+      (done, total) => ctx.onProgress && ctx.onProgress(`Reading your library: ${done} of ${total} files...`)
+    );
     for (const r of result.rows) {
       if (r.status !== 'loaded' || !r.meta || !r.meta.title) continue;
-      const hit = ctx.library.find(index, r.meta);
+      const hit = ctx.library.findAny(indexes, r.meta);
       if (!hit) continue;
       r.status = 'skipped';
       r.filePath = hit.file;

@@ -492,6 +492,7 @@ const FIELDS = {
     { k: 'outputDir', label: 'Library folder', type: 'folder' },
     { k: 'folderTemplate', label: 'Folder structure', type: 'text', hint: 'Blank = no subfolders, everything straight into the library folder. Tokens: {artist} {albumArtist} {album} {year}' },
     { k: 'fileTemplate', label: 'File name', type: 'text', hint: 'Tokens: {artist} {title} {track} {disc} {year}' },
+    { k: 'extraLibraryDirs', label: 'Also check these folders', type: 'folders', hint: 'Anything found in these counts as already owned and will not be downloaded again. Useful when your music is split across several folders.' },
     { k: 'skipExisting', label: 'Skip tracks already in the library', type: 'check', hint: 'Every link is checked against your library folder first, by tags rather than file name — tracks saved by another app under a different naming scheme are still recognised. Remixes and edits count as separate tracks.' },
   ],
   audio: [
@@ -528,6 +529,66 @@ const FIELDS = {
 function fieldEl(def) {
   const wrap = document.createElement('div');
   wrap.className = 'field';
+
+  if (def.type === 'folders') {
+    const label = document.createElement('label');
+    label.textContent = def.label;
+    const list = document.createElement('div');
+    list.className = 'folder-list';
+
+    const paint = () => {
+      const dirs = settingsCache[def.k] || [];
+      list.innerHTML = '';
+      if (!dirs.length) {
+        const none = document.createElement('div');
+        none.className = 'folder-none';
+        none.textContent = 'None \u2014 only your library folder is checked.';
+        list.append(none);
+      }
+      dirs.forEach((dir, i) => {
+        const row = document.createElement('div');
+        row.className = 'folder-row';
+        const txt = document.createElement('span');
+        txt.textContent = dir;
+        txt.title = dir;
+        const del = document.createElement('button');
+        del.className = 'row-btn';
+        del.textContent = '\u2715';
+        del.title = 'Stop checking this folder';
+        del.addEventListener('click', async () => {
+          const next = (settingsCache[def.k] || []).slice();
+          next.splice(i, 1);
+          await save(def.k, next);
+          paint();
+        });
+        row.append(txt, del);
+        list.append(row);
+      });
+    };
+    paint();
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn';
+    addBtn.textContent = 'Add a folder';
+    addBtn.addEventListener('click', async () => {
+      const dir = await api.chooseFolder();
+      if (!dir) return;
+      const next = (settingsCache[def.k] || []).slice();
+      if (next.includes(dir)) return;
+      next.push(dir);
+      await save(def.k, next);
+      paint();
+    });
+
+    wrap.append(label, list, addBtn);
+    if (def.hint) {
+      const hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = def.hint;
+      wrap.append(hint);
+    }
+    return wrap;
+  }
 
   if (def.type === 'spotifyauth') {
     const label = document.createElement('label');

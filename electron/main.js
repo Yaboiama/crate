@@ -68,7 +68,9 @@ app.whenReady().then(async () => {
   genre.init({ settings, spotify, limiter, breaker, cacheDir });
   library.init({ settings, cacheDir });
   playlists.init({ settings, spotify, library, userData });
-  settings.onChange((_all, patch) => { if ('outputDir' in patch) library.invalidate(); });
+  settings.onChange((_all, patch) => {
+    if ('outputDir' in patch || 'extraLibraryDirs' in patch) library.invalidate();
+  });
 
   manifest.onChange((type, payload) => {
     if (type === 'rows') broadcast('rows:changed', manifest.rows());

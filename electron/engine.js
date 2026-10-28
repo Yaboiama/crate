@@ -86,6 +86,10 @@ async function runRow(id) {
   try {
     row = await stResolve(row, s);
     row = await stMatch(row, s);
+    // Indexes are cached, so this is a no-op after the first track.
+    if (s.skipExisting && ctx.library) {
+      try { await ctx.library.ensureAll(libraryDirsFor(row, s)); } catch { /* checked below anyway */ }
+    }
     const skipped = stSkipCheck(row, s);
     if (!skipped) {
       // MusicBrainz is capped at 1 request/second, so the genre lookup runs
@@ -306,6 +310,12 @@ function buildDest(row, s) {
   return full;
 }
 
+// Where a track counts as "already owned": its own destination first, then
+// any extra folders the user listed.
+function libraryDirsFor(row, s) {
+  return [row.destDir || s.outputDir, ...(s.extraLibraryDirs || [])];
+}
+
 // Honour skipExisting before doing any network work at all.
 function stSkipCheck(row, s) {
   const dest = buildDest(row, s);
@@ -323,7 +333,7 @@ function stSkipCheck(row, s) {
   // Rows that only learn their metadata during matching (anything from
   // YouTube) reach the library check here rather than at expansion time.
   if (ctx.library && row.meta && row.meta.title) {
-    const hit = ctx.library.find(ctx.library.current(row.destDir || s.outputDir), row.meta);
+    const hit = ctx.library.findAny(ctx.library.currentAll(libraryDirsFor(row, s)), row.meta);
     if (hit) {
       patch(row.id, {
         status: 'skipped', stage: null, progress: 1, filePath: hit.file,

@@ -26,6 +26,12 @@ audio elsewhere.
   library *by tags rather than filename*, so a track another tool saved as
   `Artist - Title.mp3` is recognised as the same recording Crate would name
   `Title - Artist.mp3`. Remixes and edits count as separate tracks.
+- **Checks as many folders as you like.** If your music is spread across
+  several folders, add them under *Settings › Library › Also check these
+  folders* and anything found in any of them counts as already owned. Folders
+  are indexed from their ID3 tags and cached against file size and modified
+  time, so the first scan of a big collection takes a moment and every scan
+  after it is instant.
 - **Watched playlists.** Capture a playlist once, then check it for new tracks
   and download them whenever you choose. Each playlist has its own folder.
   Nothing runs on a timer.

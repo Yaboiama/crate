@@ -10,6 +10,7 @@ const DEFAULTS = {
   folderTemplate: '',       // blank = no subfolders; artist/album live in the tags
   fileTemplate: '{title} - {artist}',
   skipExisting: true,
+  extraLibraryDirs: [],     // also treat these folders as "already have it"
   // Audio
   bitrate: '320',           // 320 | 256 | 192 | V0
   normalise: false,         // ReplayGain tags only — audio is never altered
