@@ -84,10 +84,44 @@ npm start
 **4. Set your library folder** in *Settings › Library*, and add Spotify
 credentials in *Settings › Metadata* — see below.
 
-### Making a desktop shortcut (Windows)
+**5. Optional:** `npm run shortcut` puts Crate on your desktop so you never
+need the terminal again.
 
-Point a shortcut at `node_modules\electron\dist\electron.exe` with the
-argument `.` and set *Start in* to the project folder.
+### Desktop shortcut
+
+So you never need a terminal again:
+
+```bash
+npm run shortcut
+```
+
+That puts a **Crate** shortcut on your desktop — a `.lnk` on Windows, a
+`.command` on macOS, a `.desktop` entry on Linux. Double-click it to open the
+app.
+
+---
+
+## Which links can I paste?
+
+| Source | What works | Where the audio comes from |
+|---|---|---|
+| **Spotify** | track, album and playlist links | YouTube — Spotify is metadata only |
+| **YouTube** | video, Shorts, live and playlist links | YouTube |
+| **YouTube Music** | track and playlist links | YouTube |
+| **SoundCloud** | track links and sets | SoundCloud |
+| **Anything else `yt-dlp` supports** | single pages, best effort | that site |
+
+You can paste **several links at once**, separated by spaces or new lines, and
+they all load into one queue.
+
+**Spotify is never an audio source.** Its streams are DRM-protected and Crate
+does not touch them. A Spotify link is read for its track list and release
+details, and the audio for each track is then found on YouTube — which is why
+Spotify links give the best tags, since the correct metadata is known before
+anything is downloaded.
+
+YouTube and SoundCloud playlists have **no size limit**. Spotify playlist
+links depend on your credentials — see below.
 
 ---
 
