@@ -1,0 +1,10 @@
+node_modules/
+bin/
+dist/
+*.log
+
+# never commit anything holding credentials or personal library data
+.env
+settings.json
+queue.json
+playlists.json

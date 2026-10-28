@@ -1,0 +1,22 @@
+{
+  "name": "crate",
+  "productName": "Crate",
+  "version": "0.1.0",
+  "description": "Paste a link, get correctly tagged MP3s. Audio from YouTube/SoundCloud, metadata from Spotify.",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "node scripts/fetch-ytdlp.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "node-id3": "^0.2.6"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0"
+  }
+}

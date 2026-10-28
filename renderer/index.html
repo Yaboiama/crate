@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' file: data: https:; font-src 'self'" />
+  <title>Crate</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header id="titlebar">
+    <div class="tb-left">
+      <span class="tb-mark"></span>
+      <span class="tb-name">Crate</span>
+    </div>
+    <div class="tb-drag"></div>
+    <div class="tb-controls">
+      <button class="tb-btn" id="winMin" title="Minimise" aria-label="Minimise">&#x2013;</button>
+      <button class="tb-btn" id="winMax" title="Maximise" aria-label="Maximise">&#x25A1;</button>
+      <button class="tb-btn tb-close" id="winClose" title="Close" aria-label="Close">&#x2715;</button>
+    </div>
+  </header>
+
+  <section id="linkbar">
+    <input id="linkInput" type="text" spellcheck="false"
+           placeholder="Paste links — or select a whole Spotify playlist, copy, and paste it all here" />
+    <button id="addBtn" class="btn">Add</button>
+    <button id="downloadBtn" class="btn btn-primary" hidden>Download</button>
+    <button id="pauseBtn" class="btn" title="Pause or resume the queue">Pause</button>
+    <button id="playlistsBtn" class="btn" title="Watched playlists">Playlists</button>
+    <button id="settingsBtn" class="btn" title="Settings">Settings</button>
+  </section>
+  <div id="linkMsg" hidden></div>
+
+  <main id="queue">
+    <div id="emptyState">
+      <div class="empty-mark"></div>
+      <p>Paste a link to get started</p>
+      <p class="empty-sub">Audio from YouTube or SoundCloud · titles, albums and sleeves from Spotify</p>
+    </div>
+    <div id="rows"></div>
+  </main>
+
+  <footer id="statusbar">
+    <span id="statusDot" class="dot"></span>
+    <span id="statusText">Paste a link to begin</span>
+    <span id="statusCounts"></span>
+    <div class="sb-actions">
+      <button id="retryFailedBtn" class="btn btn-warn" hidden>Retry failed</button>
+      <button id="clearBtn" class="btn btn-quiet" title="Remove finished rows from the list">Clear finished</button>
+    </div>
+  </footer>
+
+  <div id="plBackdrop" hidden></div>
+  <aside id="plPanel" hidden>
+    <div class="sp-head">
+      <h2>Watched playlists</h2>
+      <button id="plClose" class="tb-btn" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="sp-body" id="plBody">
+      <div class="pl-new">
+        <div class="field">
+          <label>Add a playlist</label>
+          <div class="hint">Paste the Spotify playlist link — the whole playlist is read, however long it is. A block of copied track links works too (open the playlist in Spotify, click a track, Ctrl+A, Ctrl+C).</div>
+        </div>
+        <div class="field">
+          <input id="plName" type="text" spellcheck="false" placeholder="Name, e.g. Deep Groove" />
+        </div>
+        <div class="field">
+          <div class="field-row">
+            <input id="plFolder" type="text" spellcheck="false" placeholder="Folder for this playlist" />
+            <button id="plBrowse" class="btn">Browse</button>
+          </div>
+        </div>
+        <div class="field">
+          <textarea id="plPaste" spellcheck="false" rows="3" placeholder="Paste the playlist link, or the copied track links"></textarea>
+          <div class="hint" id="plPasteCount"></div>
+        </div>
+        <button id="plAdd" class="btn btn-primary">Capture playlist</button>
+      </div>
+      <div id="plList"></div>
+    </div>
+  </aside>
+
+  <div id="settingsBackdrop" hidden></div>
+  <aside id="settingsPanel" hidden>
+    <div class="sp-head">
+      <h2>Settings</h2>
+      <span id="saveState" class="save-state"></span>
+      <button id="settingsClose" class="tb-btn" aria-label="Close settings">&#x2715;</button>
+    </div>
+    <nav class="sp-tabs" id="spTabs">
+      <button data-tab="library" class="active">Library</button>
+      <button data-tab="audio">Audio</button>
+      <button data-tab="metadata">Metadata</button>
+      <button data-tab="reliability">Reliability</button>
+      <button data-tab="tools">Tools</button>
+    </nav>
+    <div class="sp-body" id="spBody"></div>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
