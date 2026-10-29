@@ -39,6 +39,11 @@ audio elsewhere.
   folder and its own list of folders to compare against, both saved with it —
   so checking for new tracks and fetching them is two clicks, every time.
   Nothing runs on a timer.
+- **Stubborn about finding the audio.** YouTube's search returns nothing at
+  all for some phrasings — not because the track is missing, but because the
+  wording trips a filter. Crate retries with progressively shorter queries,
+  keeping the version marker (dub, remix, edit) so a remix is never resolved
+  to the original, and scores every candidate against the full release data.
 - **Proper tagging.** ID3v2 with title, artist, album artist, album, track and
   disc numbers, year, ISRC, embedded JPEG cover art, and the Spotify track ID
   for exact future re-tagging. Optional genre tagging via MusicBrainz, and

@@ -193,46 +193,121 @@ function resolveDurationScore(aSec, bSec) {
   return 1 - (diff - 5) / 70;
 }
 
+// YouTube's search returns nothing at all for certain phrasings — not
+// because the track is missing, but because the wording trips a filter.
+// "NYC Dirty Talks" finds nothing while "Black Loops NYC Dirty" returns that
+// exact track as the top hit. So rather than keep a list of awkward words,
+// progressively shorten the query: strip the bracketed part, then drop one
+// trailing word at a time. Candidates are still scored against the full
+// metadata, so a looser query cannot smuggle in a wrong match.
+function resolveQueries(m) {
+  const artist = String(m.artist || '').trim();
+  const title = String(m.title || '').trim();
+  const bare = title.replace(/[[(][^\])]*[\])]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const out = [];
+  const push = (q) => {
+    const clean = String(q).replace(/\s+/g, ' ').trim();
+    if (clean && !out.includes(clean)) out.push(clean);
+  };
+
+  push(`${artist} ${title}`);
+  if (bare && bare !== title) push(`${artist} ${bare}`);
+  // Stripping the bracket also strips the one word that distinguishes a dub
+  // or a remix from the original, and we refuse version mismatches — so try
+  // the short title with its version marker put back.
+  const marker = matcher.versionKey(title);
+  if (marker && bare) {
+    for (const word of marker.split('+')) push(`${artist} ${bare} ${word}`);
+  }
+  const words = (bare || title).split(' ').filter(Boolean);
+  for (let n = words.length - 1; n >= 1 && out.length < 6; n--) {
+    push(`${artist} ${words.slice(0, n).join(' ')}`);
+  }
+  push(title);
+  return out.slice(0, 6);
+}
+
+function scoreCandidate2(e, m, q) {
+  const ch = String(e.channel || e.uploader || '');
+  // The artist lives in the title on most uploads but in the channel name
+  // on auto-generated "- Topic" ones, so both are searched.
+  const hay = `${e.title || ''} ${ch}`;
+  const wantSec = m.durationMs ? m.durationMs / 1000 : null;
+  const t = Math.max(
+    matcher.tokenSetRatio(e.title || '', m.title),
+    matcher.tokenSetRatio(hay, q)
+  );
+  const a = m.artist ? matcher.tokenSetRatio(hay, m.artist) : 0.5;
+  // Uploads carry intros, outros and DJ edits, so length agreement is
+  // looser here than when identifying a release.
+  const d = e.duration != null && wantSec != null ? resolveDurationScore(e.duration, wantSec) : 0.4;
+  const bonus = /- topic$/i.test(ch) ? 0.12 : (matcher.tokenSetRatio(ch, m.artist) > 0.5 ? 0.06 : 0);
+  // Version mismatch guard: don't grab the original when we owe a remix.
+  // A near-identical running time is strong evidence it is the same cut, so
+  // the penalty eases when the lengths agree closely.
+  const sameVersion = matcher.versionKey(e.title || '') === matcher.versionKey(m.title);
+  const versionPenalty = sameVersion ? 1 : (d >= 0.95 ? 0.75 : 0.3);
+  return {
+    entry: e,
+    score: (0.45 * t + 0.25 * a + 0.3 * d) * versionPenalty + bonus,
+    lengthOff: d < 0.35,
+    versionGuessed: !sameVersion,
+  };
+}
+
 // Spotify rows know the release but not where the audio lives. Search
-// YouTube, score by title + duration, prefer auto-generated "Topic" uploads.
+// YouTube, score by title + artist + duration, prefer auto-generated
+// "Topic" uploads, and only give up once every query shape has been tried.
 async function stResolve(row, s) {
   if (!row.needsResolve || row.sourceUrl) return row;
   patch(row.id, { stage: 'resolve', progress: 0 });
   const m = row.meta;
-  const q = `${m.artist} ${m.title}`;
-  await ctx.limiter.take('www.youtube.com');
-  const j = await ctx.tools.runYtdlpJson(
-    ['--flat-playlist', '-J', '--no-warnings', '--socket-timeout', '30', `ytsearch6:${q}`],
-    { timeoutMs: 120000 }
-  );
-  const entries = (j.entries || []).filter(Boolean);
-  const wantSec = m.durationMs ? m.durationMs / 1000 : null;
+  const queries = resolveQueries(m);
+
   let best = null;
-  for (const e of entries) {
-    const ch = String(e.channel || e.uploader || '');
-    // The artist lives in the title on most uploads but in the channel name
-    // on auto-generated "- Topic" ones, so both are searched.
-    const hay = `${e.title || ''} ${ch}`;
-    const t = Math.max(
-      matcher.tokenSetRatio(e.title || '', m.title),
-      matcher.tokenSetRatio(hay, q)
-    );
-    const a = m.artist ? matcher.tokenSetRatio(hay, m.artist) : 0.5;
-    // Uploads carry intros, outros and DJ edits, so length agreement is
-    // looser here than when identifying a release.
-    const d = e.duration != null && wantSec != null ? resolveDurationScore(e.duration, wantSec) : 0.4;
-    const bonus = /- topic$/i.test(ch) ? 0.12 : (matcher.tokenSetRatio(ch, m.artist) > 0.5 ? 0.06 : 0);
-    // Version mismatch guard: don't grab the original when we owe a remix.
-    const versionPenalty = matcher.versionKey(e.title || '') === matcher.versionKey(m.title) ? 1 : 0.3;
-    const score = (0.45 * t + 0.25 * a + 0.3 * d) * versionPenalty + bonus;
-    if (!best || score > best.score) best = { entry: e, score, lengthOff: d < 0.35 };
+  let usedQuery = null;
+  let searched = 0;
+  const seen = new Set();
+
+  for (const q of queries) {
+    await ctx.limiter.take('www.youtube.com');
+    let j;
+    try {
+      j = await ctx.tools.runYtdlpJson(
+        ['--flat-playlist', '-J', '--no-warnings', '--socket-timeout', '30', `ytsearch6:${q}`],
+        { timeoutMs: 120000 }
+      );
+    } catch (err) {
+      // A search that fails outright is worth retrying later, but only if no
+      // other query shape has produced anything usable.
+      if (searched === 0 && queries.indexOf(q) === queries.length - 1) throw err;
+      continue;
+    }
+    searched += 1;
+
+    for (const e of (j.entries || []).filter(Boolean)) {
+      const key = e.id || e.url;
+      if (key && seen.has(key)) continue;
+      if (key) seen.add(key);
+      const cand = scoreCandidate2(e, m, q);
+      if (!best || cand.score > best.score) { best = cand; usedQuery = q; }
+    }
+    if (best && best.score >= 0.45) break; // good enough, stop searching
+    patch(row.id, { progress: Math.min(0.9, (queries.indexOf(q) + 1) / queries.length) });
   }
+
   if (!best || best.score < 0.45) {
-    throw new CrateError('permanent', "Couldn't find a matching audio source on YouTube for this track");
+    const how = best ? ` (closest match scored ${best.score.toFixed(2)} of the 0.45 needed)` : ' (YouTube returned nothing for any search)';
+    throw new CrateError('permanent', `Couldn't find this on YouTube${how}`);
   }
-  if (best.lengthOff) {
-    patch(row.id, { note: 'Closest upload runs a different length — may be a different edit' });
-  }
+
+  const notes = [];
+  if (usedQuery !== queries[0]) notes.push('found with a shortened search');
+  if (best.lengthOff) notes.push('closest upload runs a different length — may be a different edit');
+  if (best.versionGuessed && !best.lengthOff) notes.push('version wording differs from the release');
+  if (notes.length) patch(row.id, { note: notes.join('; ') });
+
   const e = best.entry;
   return patch(row.id, {
     sourceUrl: e.url && /^https?:/i.test(e.url) ? e.url : `https://www.youtube.com/watch?v=${e.id}`,
