@@ -193,6 +193,34 @@ in error messages, and never committed here.
 
 ---
 
+## Age-restricted tracks (optional, and not risk-free)
+
+YouTube serves some tracks only to a signed-in account. Crate can use one,
+but read this first.
+
+**There is no way to guarantee an account will not be banned.** That is
+YouTube's decision, and nothing in this app can remove the risk. Linking an
+account to downloading is against YouTube's terms, and the account is what
+gets penalised. Anyone promising otherwise is guessing.
+
+What this app does do is keep the exposure as small as it can be:
+
+- The account is used **only** to retry a track YouTube refused because of an
+  age gate. Every ordinary download stays signed out.
+- It is **off unless you set it**. With no cookies file, no account is
+  involved at any point.
+- Crate does not read your browser profile, so your everyday signed-in
+  session is never touched.
+
+If you use it, **use a throwaway account, never your main one.** Export a
+`cookies.txt` from a browser signed into that account (any of the standard
+cookie-export extensions will do), then point *Settings › Tools › YouTube
+account* at the file. **Unlink** clears it.
+
+Crate deliberately does not try to slip past an age gate without signing in.
+Authenticating as someone entitled to view the content is one thing; working
+around the check itself is another.
+
 ## Notes
 
 - **Downloading from YouTube runs against its terms of service.** That is your

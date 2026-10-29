@@ -405,6 +405,15 @@ ipcMain.handle('settings:choose-folder', async () => {
   return r.filePaths[0];
 });
 
+ipcMain.handle('settings:choose-file', async (_e, opts) => {
+  const r = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: (opts && opts.filters) || [{ name: 'Cookies', extensions: ['txt'] }],
+  });
+  if (r.canceled || !r.filePaths.length) return null;
+  return r.filePaths[0];
+});
+
 ipcMain.handle('spotify:status', () => ({ connected: spotify.isConnected() }));
 ipcMain.handle('spotify:connect', async () => {
   try {

@@ -34,6 +34,10 @@ const DEFAULTS = {
   ytdlpPath: '',
   ffmpegPath: '',
   autoUpdateYtdlp: true,    // stale extractors are the #1 cause of failures
+  // Path to a cookies.txt exported from a signed-in YouTube session. Used
+  // ONLY to retry a track that was refused as age-restricted, never for
+  // ordinary downloads. Empty means no account is involved at all.
+  youtubeCookiesFile: '',
   pythonPath: '',           // optional: the python that has spotdl installed
   limitRate: 'off',         // off | 1M | 2M | 5M
 };

@@ -614,6 +614,7 @@ const FIELDS = {
   tools: [
     { k: '_toolstatus', type: 'toolstatus' },
     { k: 'autoUpdateYtdlp', label: 'Keep yt-dlp up to date automatically', type: 'check', hint: 'Checked at launch. A stale yt-dlp fails every download with a 403 — this is the single biggest cause of things breaking.' },
+    { k: 'youtubeCookiesFile', label: 'YouTube account (for age-restricted tracks only)', type: 'file', hint: 'Optional. Point this at a cookies.txt exported from a signed-in YouTube session and Crate will retry age-restricted tracks with it. It is used ONLY for those retries \u2014 every other download stays signed out. Use a throwaway account, never your main one: linking any account to downloading puts that account at risk, and no setting can remove that risk.' },
     { k: 'ytdlpPath', label: 'yt-dlp path (blank = bundled)', type: 'text' },
     { k: 'ffmpegPath', label: 'ffmpeg path (blank = bundled)', type: 'text' },
   ],
@@ -622,6 +623,39 @@ const FIELDS = {
 function fieldEl(def) {
   const wrap = document.createElement('div');
   wrap.className = 'field';
+
+  if (def.type === 'file') {
+    const label = document.createElement('label');
+    label.textContent = def.label;
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = settingsCache[def.k] || '';
+    input.spellcheck = false;
+    input.placeholder = 'No account linked';
+    input.addEventListener('input', debounce(() => save(def.k, input.value.trim()), 400));
+    const browse = document.createElement('button');
+    browse.className = 'btn';
+    browse.textContent = 'Choose';
+    browse.addEventListener('click', async () => {
+      const f = await api.chooseFile();
+      if (f) { input.value = f; save(def.k, f); }
+    });
+    const clear = document.createElement('button');
+    clear.className = 'btn';
+    clear.textContent = 'Unlink';
+    clear.addEventListener('click', () => { input.value = ''; save(def.k, ''); });
+    row.append(input, browse, clear);
+    wrap.append(label, row);
+    if (def.hint) {
+      const hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = def.hint;
+      wrap.append(hint);
+    }
+    return wrap;
+  }
 
   if (def.type === 'folders') {
     const label = document.createElement('label');

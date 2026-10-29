@@ -120,11 +120,13 @@ function classifyYtdlp(stderr, timedOut, timeoutMs) {
   if (/private video|video unavailable|content isn.?t available|this video is not available|account.*terminated|removed|copyright|not available in your country|region|geo.?restrict|age.restrict|sign in to confirm|members.only|premieres in/i.test(text)) {
     const reason =
       /private/i.test(text) ? 'This video is private' :
-      /age.restrict|sign in to confirm/i.test(text) ? 'Age-restricted — needs a signed-in session, which Crate deliberately does not use' :
+      /age.restrict|sign in to confirm/i.test(text) ? 'Age-restricted — YouTube will only serve this to a signed-in account' :
       /country|region|geo/i.test(text) ? 'Not available in your region' :
       /copyright/i.test(text) ? 'Removed for copyright' :
       'This video is no longer available';
-    return new CrateError('permanent', reason);
+    const err = new CrateError('permanent', reason);
+    if (/age.restrict|sign in to confirm/i.test(text)) err.ageRestricted = true;
+    return err;
   }
   if (/unsupported url|unable to extract|no video formats found|is not a valid url/i.test(text)) {
     return new CrateError('extractor', "yt-dlp couldn't read this page — it may need an update (Settings › Tools)");

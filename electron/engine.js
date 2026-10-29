@@ -472,10 +472,24 @@ async function stDownload(row, s) {
   if (s.limitRate && s.limitRate !== 'off') args.push('--limit-rate', s.limitRate);
   args.push(row.sourceUrl);
 
-  await ctx.tools.runYtdlp(args, {
+  const runArgs = {
     timeoutMs: Math.max(30, s.trackTimeoutSec || 300) * 1000,
     onProgress: (frac) => patchProgress(row.id, 'download', frac),
-  });
+  };
+
+  try {
+    await ctx.tools.runYtdlp(args, runArgs);
+  } catch (err) {
+    // The account is used for one thing only: a track YouTube refused to
+    // serve anonymously because of an age gate. Every ordinary download
+    // stays signed out, so the account is exposed as little as possible.
+    const cookies = (s.youtubeCookiesFile || '').trim();
+    if (!err || !err.ageRestricted || !cookies || !fs.existsSync(cookies)) throw err;
+    patch(row.id, { note: 'Age-restricted — retrying with your linked account' });
+    await ctx.limiter.take(hostFor(row));
+    await ctx.tools.runYtdlp(['--cookies', cookies, ...args], runArgs);
+    patch(row.id, { note: 'Fetched using your linked account (age-restricted)' });
+  }
 
   const found = fs.readdirSync(tmpDir).find((f) => f.startsWith(`${row.id}.src.`) && !f.endsWith('.part'));
   if (!found) throw new CrateError('transient', 'Download finished but no file appeared — will retry');

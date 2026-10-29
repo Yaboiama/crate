@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('crate', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   chooseFolder: () => ipcRenderer.invoke('settings:choose-folder'),
+  chooseFile: (opts) => ipcRenderer.invoke('settings:choose-file', opts),
 
   // watched playlists
   listPlaylists: () => ipcRenderer.invoke('playlists:list'),
