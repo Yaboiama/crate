@@ -294,14 +294,44 @@ ipcMain.handle('playlists:update', async (_e, { id, text }) => {
   }
 });
 
+// Re-reads a playlist's own link so tracks added on Spotify since it was
+// captured are picked up. A playlist captured from a pasted block of track
+// links has no link to re-read, and is left as it is.
+//
+// Never fatal: if the link cannot be read right now, the check still runs
+// against what is already stored and says why the refresh was skipped.
+async function refreshFromLink(id) {
+  const p = playlists.get(id);
+  if (!p || !p.sourceUrl) return { refreshed: false, added: 0 };
+  const before = p.tracks.length;
+  try {
+    broadcast('notice', { text: 'Re-reading the playlist from Spotify...', kind: 'info' });
+    const fromLink = await tracksFromLink(p.sourceUrl);
+    if (!fromLink || !fromLink.metas.length) {
+      return { refreshed: false, added: 0, error: 'the link returned no tracks' };
+    }
+    await playlists.updateTracks(id, fromLink.metas.map((m) => m.spotifyId), null, fromLink.metas);
+    const after = playlists.get(id).tracks.length;
+    return {
+      refreshed: true,
+      added: Math.max(0, after - before),
+      removed: Math.max(0, before - after),
+      capped: fromLink.capped,
+    };
+  } catch (err) {
+    return { refreshed: false, added: 0, error: err.message || 'could not re-read the link' };
+  }
+}
+
 ipcMain.handle('playlists:check', async (_e, id) => {
   try {
+    const refresh = await refreshFromLink(id);
     broadcast('notice', { text: 'Checking the folder...', kind: 'info' });
     const r = await playlists.check(id, (done, total) =>
       broadcast('notice', { text: `Reading your library: ${done} of ${total} files...`, kind: 'info' }));
     if (!r) return { ok: false, error: 'That playlist is no longer here' };
     const { missingTracks, ...rest } = r;
-    return { ok: true, playlist: rest };
+    return { ok: true, playlist: rest, refresh };
   } catch (err) {
     return { ok: false, error: err.message || 'Could not check that playlist' };
   }
@@ -311,6 +341,7 @@ ipcMain.handle('playlists:check', async (_e, id) => {
 // several watched playlists can download into different places at once.
 ipcMain.handle('playlists:download-new', async (_e, id) => {
   try {
+    const refresh = await refreshFromLink(id);
     const r = await playlists.check(id, (done, total) =>
       broadcast('notice', { text: `Reading your library: ${done} of ${total} files...`, kind: 'info' }));
     if (!r) return { ok: false, error: 'That playlist is no longer here' };
@@ -323,7 +354,7 @@ ipcMain.handle('playlists:download-new', async (_e, id) => {
     }
     const fresh = r.missingTracks.filter((m) => !m.spotifyId || !queued.has(m.spotifyId));
     if (!fresh.length) {
-      return { ok: true, added: 0, alreadyQueued: r.missingTracks.length, playlist: { ...r, missingTracks: undefined } };
+      return { ok: true, added: 0, alreadyQueued: r.missingTracks.length, refresh, playlist: { ...r, missingTracks: undefined } };
     }
 
     const rows = fresh.map((meta) => manifest.makeRow({
@@ -343,6 +374,7 @@ ipcMain.handle('playlists:download-new', async (_e, id) => {
       ok: true,
       added: rows.length,
       alreadyQueued: r.missingTracks.length - rows.length,
+      refresh,
       playlist: { ...r, missingTracks: undefined },
     };
   } catch (err) {

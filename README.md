@@ -33,7 +33,9 @@ audio elsewhere.
   time, so the first scan of a big collection takes a moment and every scan
   after it is instant.
 - **Watched playlists.** Capture a playlist once, then check it for new tracks
-  and download them whenever you choose. Each playlist has its own destination
+  and download them whenever you choose. **Check for new** re-reads the
+  playlist from Spotify first, so anything you have added since shows up
+  without re-pasting. Each playlist has its own destination
   folder and its own list of folders to compare against, both saved with it —
   so checking for new tracks and fetching them is two clicks, every time.
   Nothing runs on a timer.

@@ -272,6 +272,19 @@ function whenText(ts) {
   return 'checked ' + Math.round(hrs / 24) + ' d ago';
 }
 
+// What the link re-read turned up, as a sentence fragment.
+function refreshNote(refresh) {
+  if (!refresh) return '';
+  if (refresh.error) return 'could not re-read the link (' + refresh.error + '), so checked the saved list \u2014 ';
+  if (!refresh.refreshed) return '';
+  if (refresh.added && refresh.removed) {
+    return 'link re-read: ' + refresh.added + ' added, ' + refresh.removed + ' removed \u2014 ';
+  }
+  if (refresh.added) return 'link re-read: ' + refresh.added + ' new track' + (refresh.added === 1 ? '' : 's') + ' \u2014 ';
+  if (refresh.removed) return 'link re-read: ' + refresh.removed + ' no longer in the playlist \u2014 ';
+  return 'link re-read, nothing new \u2014 ';
+}
+
 function playlistCard(p) {
   const card = document.createElement('div');
   card.className = 'pl-card';
@@ -308,6 +321,9 @@ function playlistCard(p) {
   const btnCheck = document.createElement('button');
   btnCheck.className = 'btn';
   btnCheck.textContent = 'Check for new';
+  btnCheck.title = p.sourceUrl
+    ? 'Re-read the playlist from Spotify, then see what is missing from your folders'
+    : 'See what is missing from your folders';
   btnCheck.addEventListener('click', async () => {
     btnCheck.disabled = true;
     btnCheck.textContent = 'Checking\u2026';
@@ -317,7 +333,8 @@ function playlistCard(p) {
     if (!r.ok) { showLinkMsg(r.error, true); return; }
     Object.assign(p, r.playlist);
     paint();
-    showLinkMsg(p.name + ': ' + r.playlist.lastResult.missing + ' missing of ' + r.playlist.lastResult.total, false);
+    showLinkMsg(p.name + ': ' + refreshNote(r.refresh)
+      + r.playlist.lastResult.missing + ' missing of ' + r.playlist.lastResult.total, Boolean(r.refresh && r.refresh.error));
   });
 
   const btnGet = document.createElement('button');
@@ -331,14 +348,17 @@ function playlistCard(p) {
     btnGet.textContent = 'Download new';
     if (!r.ok) { showLinkMsg(r.error, true); return; }
     if (r.playlist) { Object.assign(p, r.playlist); paint(); }
-    showLinkMsg(r.added
-      ? p.name + ': queued ' + r.added + ' track' + (r.added === 1 ? '' : 's') + ' \u2014 downloading now'
-      : p.name + ': nothing new to download', false);
+    showLinkMsg(refreshNote(r.refresh) + (r.added
+      ? 'queued ' + r.added + ' track' + (r.added === 1 ? '' : 's') + ' \u2014 downloading now'
+      : 'nothing new to download'), Boolean(r.refresh && r.refresh.error));
   });
 
+  // Check re-reads the link itself now, so this is only for playlists
+  // captured from a pasted block of track links.
   const btnUpdate = document.createElement('button');
   btnUpdate.className = 'btn';
-  btnUpdate.textContent = p.sourceUrl ? 'Refresh from link' : 'Update list';
+  btnUpdate.textContent = 'Update list';
+  btnUpdate.hidden = Boolean(p.sourceUrl);
 
   const btnFolder = document.createElement('button');
   btnFolder.className = 'btn';
